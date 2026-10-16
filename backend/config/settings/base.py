@@ -1,5 +1,6 @@
 """Settings shared by every environment. Environment-specific values live in
 dev.py / test.py / prod.py. Secrets come from environment variables only."""
+
 from pathlib import Path
 
 import environ

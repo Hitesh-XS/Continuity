@@ -1,4 +1,5 @@
 """WSGI entry point. Defaults to PRODUCTION settings (safe by default)."""
+
 import os
 
 from django.core.wsgi import get_wsgi_application
