@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets: never commit real env files
+.env
+.env.*
+!.env.example
+
+# Node / WXT
+node_modules/
+extension/.output/
+extension/.wxt/
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Django
+backend/staticfiles/
+*.log
