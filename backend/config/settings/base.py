@@ -1,6 +1,7 @@
 """Settings shared by every environment. Environment-specific values live in
 dev.py / test.py / prod.py. Secrets come from environment variables only."""
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -26,12 +27,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "accounts",
     "common",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "common.middleware.RequestBodyLimitMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -78,13 +81,43 @@ USE_TZ = True
 STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Secure-by-default API: everything requires authentication unless a view says
-# otherwise. No authenticators are configured yet; token auth arrives in Phase 2.
+# ---- Continuity API settings -------------------------------------------------
+# Self-service registration switch (roadmap: "if self-service registration is enabled").
+AUTH_REGISTRATION_ENABLED = env.bool("AUTH_REGISTRATION_ENABLED", default=True)
+
+# Reject request bodies larger than this (checked via Content-Length). A reverse
+# proxy limit (e.g. nginx client_max_body_size) is still needed in production.
+API_MAX_REQUEST_BODY_BYTES = env.int("API_MAX_REQUEST_BODY_BYTES", default=2 * 1024 * 1024)
+
+# Secure-by-default API: everything requires a valid JWT unless a view says otherwise.
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "120/min",
+        "user": "600/min",
+        "auth_register": "20/hour",
+        "auth_login": "10/min",
+        "auth_refresh": "30/min",
+    },
+    "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,  # every refresh issues a new refresh token...
+    "BLACKLIST_AFTER_ROTATION": True,  # ...and revokes the one that was used
+    "UPDATE_LAST_LOGIN": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 # Never log message content, handoff packages, or API keys anywhere in this project.

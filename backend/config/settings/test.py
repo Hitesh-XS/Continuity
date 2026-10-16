@@ -1,7 +1,9 @@
 import os
 
 # Tests must not depend on a real secret being configured.
-os.environ.setdefault("DJANGO_SECRET_KEY", "test-only-key-not-a-secret")
+os.environ.setdefault(
+    "DJANGO_SECRET_KEY", "test-only-key-not-a-secret-but-long-enough-for-jwt-signing"
+)
 
 from .base import *  # noqa: E402, F403
 

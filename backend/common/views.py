@@ -11,6 +11,7 @@ class HealthView(APIView):
 
     authentication_classes: list = []
     permission_classes = [AllowAny]
+    throttle_classes: list = []  # monitors poll this endpoint; never rate-limit it
 
     def get(self, request):
         db_ok = check_database()
