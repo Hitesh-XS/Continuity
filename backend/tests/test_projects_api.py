@@ -29,9 +29,7 @@ def test_create_project_with_defaults(alice, client_for):
 
 
 def test_create_ignores_owner_in_body(alice, bob, client_for):
-    response = client_for(alice).post(
-        LIST, {"name": "Mine", "owner": str(bob.id)}, format="json"
-    )
+    response = client_for(alice).post(LIST, {"name": "Mine", "owner": str(bob.id)}, format="json")
     assert response.status_code == 201
     assert Project.objects.get(pk=response.json()["id"]).owner == alice
 
@@ -67,13 +65,9 @@ def test_client_supplied_id_is_idempotent(alice, client_for):
     assert Project.objects.count() == 1
 
 
-def test_client_supplied_id_owned_by_someone_else_conflicts(
-    alice, bob, make_project, client_for
-):
+def test_client_supplied_id_owned_by_someone_else_conflicts(alice, bob, make_project, client_for):
     victim = make_project(bob, name="Bob's project")
-    response = client_for(alice).post(
-        LIST, {"id": str(victim.id), "name": "Stolen"}, format="json"
-    )
+    response = client_for(alice).post(LIST, {"id": str(victim.id), "name": "Stolen"}, format="json")
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "id_conflict"
     victim.refresh_from_db()
