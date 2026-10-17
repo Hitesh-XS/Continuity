@@ -7,4 +7,5 @@ urlpatterns = [
     # Everything under /api/v1/ is the versioned public API. Later phases add
     # their includes here (projects, checkpoints, sync, ...).
     path("api/v1/", include("accounts.urls")),
+    path("api/v1/", include("projects.urls")),
 ]

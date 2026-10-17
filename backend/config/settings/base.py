@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "accounts",
     "common",
+    "projects"
 ]
 
 MIDDLEWARE = [
@@ -109,6 +110,7 @@ REST_FRAMEWORK = {
         "auth_refresh": "30/min",
     },
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
+    "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
 }
 
 SIMPLE_JWT = {
