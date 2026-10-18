@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SnapshotSchema } from '../capture/snapshot';
 import { PROVIDER_IDS } from './providers';
 
 export const ProviderIdSchema = z.enum(PROVIDER_IDS);
@@ -17,10 +18,17 @@ const CaptureGetStateMessageSchema = z.object({
   providerId: ProviderIdSchema,
 });
 
+const CaptureSnapshotMessageSchema = z.object({
+  type: z.literal('capture.snapshot'),
+  providerId: ProviderIdSchema,
+  snapshot: SnapshotSchema,
+});
+
 /** Every message a content script may send to the service worker. */
 export const ExtensionMessageSchema = z.discriminatedUnion('type', [
   ContentReadyMessageSchema,
   CaptureGetStateMessageSchema,
+  CaptureSnapshotMessageSchema,
 ]);
 export type ExtensionMessage = z.infer<typeof ExtensionMessageSchema>;
 

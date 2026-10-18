@@ -1,5 +1,12 @@
+import type { IngestResult } from '../capture/ingest';
+import type { Snapshot } from '../capture/snapshot';
 import { ExtensionMessageSchema, type CaptureStatus, type TabStatus } from './messages';
-import { getProvider, providerForUrl, type ProviderDefinition } from './providers';
+import {
+  getProvider,
+  providerForUrl,
+  type ProviderDefinition,
+  type ProviderId,
+} from './providers';
 
 /** The parts of chrome.runtime.MessageSender that we rely on. */
 export interface SenderLike {
@@ -12,12 +19,17 @@ export interface RouterDeps {
   extensionId: string;
   getCaptureStatus(provider: ProviderDefinition): Promise<CaptureStatus>;
   saveTabStatus(tabId: number, status: TabStatus): Promise<void>;
+  ingest(providerId: ProviderId, snapshot: Snapshot): Promise<IngestResult>;
   now(): string;
 }
 
 export type RouterResponse =
-  | { ok: true; status?: CaptureStatus }
-  | { ok: false; error: 'invalid_message' | 'forbidden' };
+  | {
+      ok: true;
+      status?: CaptureStatus;
+      ingested?: { inserted: number; updated: number; unchanged: number };
+    }
+  | { ok: false; error: 'invalid_message' | 'forbidden' | 'capture_inactive' };
 
 export async function routeMessage(
   raw: unknown,
@@ -27,7 +39,7 @@ export async function routeMessage(
   // 1. Only our own extension may talk to us.
   if (sender.id !== deps.extensionId) return { ok: false, error: 'forbidden' };
 
-  // 2. Messages are untrusted input: validate the shape.
+  // 2. Messages are untrusted input: validate the shape and the size limits.
   const parsed = ExtensionMessageSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: 'invalid_message' };
   const message = parsed.data;
@@ -47,7 +59,25 @@ export async function routeMessage(
         seenAt: deps.now(),
       });
       return { ok: true };
+
     case 'capture.getState':
       return { ok: true, status: await deps.getCaptureStatus(provider) };
+
+    case 'capture.snapshot': {
+      // Re-check on every snapshot: Off and Paused must stop storage immediately,
+      // even if a page script has not noticed the change yet.
+      if ((await deps.getCaptureStatus(provider)) !== 'on') {
+        return { ok: false, error: 'capture_inactive' };
+      }
+      const result = await deps.ingest(provider.id, message.snapshot);
+      return {
+        ok: true,
+        ingested: {
+          inserted: result.inserted,
+          updated: result.updated,
+          unchanged: result.unchanged,
+        },
+      };
+    }
   }
 }
