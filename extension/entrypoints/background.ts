@@ -1,13 +1,17 @@
+import { createCaptureStore } from '../src/capture/ingest';
 import { localArea } from '../src/extension/chrome-storage';
 import { getCaptureStatus, reconcileProvider } from '../src/extension/capture-control';
 import { tabStatusKey } from '../src/shared/messages';
 import { PROVIDERS } from '../src/shared/providers';
 import { routeMessage } from '../src/shared/router';
 import { createSettingsStore } from '../src/shared/settings-store';
+import { createDb } from '../src/storage/db';
 
 export default defineBackground(() => {
   // All chrome.* usage stays inside this function: WXT also loads this file in Node at build time.
   const settingsStore = createSettingsStore(localArea);
+  const db = createDb(); // the extension's own IndexedDB, not any website's
+  const captureStore = createCaptureStore(db);
 
   chrome.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
@@ -38,10 +42,18 @@ export default defineBackground(() => {
       getCaptureStatus: (provider) => getCaptureStatus(provider, settingsStore),
       saveTabStatus: (tabId, status) =>
         chrome.storage.session.set({ [tabStatusKey(tabId)]: status }),
+      ingest: async (providerId, snapshot) => {
+        const settings = await settingsStore.read();
+        return captureStore.ingest(snapshot, { providerId, projectId: settings.activeProjectId });
+      },
       now: () => new Date().toISOString(),
     })
       .then(sendResponse)
-      .catch(() => sendResponse({ ok: false, error: 'internal' }));
+      .catch((error) => {
+        // Log the error type only: never message content.
+        console.error('Continuity: message handling failed', error?.name ?? 'Error');
+        sendResponse({ ok: false, error: 'internal' });
+      });
     return true; // keep the channel open for the async response
   });
 });
