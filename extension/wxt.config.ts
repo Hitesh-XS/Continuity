@@ -13,4 +13,11 @@ export default defineConfig({
     optional_host_permissions: PROVIDERS.flatMap((provider) => [...provider.matches]),
     action: { default_title: 'Open Continuity' },
   },
+  hooks: {
+    // WXT derives host_permissions from our runtime-registered content script.
+    // We never want install-time site access, so strip it from the final manifest.
+    'build:manifestGenerated': (_wxt, manifest) => {
+      delete manifest.host_permissions;
+    },
+  },
 });
