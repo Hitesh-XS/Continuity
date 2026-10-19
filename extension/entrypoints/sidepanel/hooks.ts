@@ -1,11 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { ZodType } from 'zod';
 import { hasProviderPermission } from '../../src/extension/capture-control';
-import { TabStatusSchema, tabStatusKey, type TabStatus } from '../../src/shared/messages';
+import {
+  AdapterHealthRecordSchema,
+  CAPTURE_TICK_KEY,
+  TabStatusSchema,
+  adapterHealthKey,
+  tabStatusKey,
+  type AdapterHealthRecord,
+  type TabStatus,
+} from '../../src/shared/messages';
 import type { ProviderDefinition } from '../../src/shared/providers';
 import type { Settings } from '../../src/shared/settings';
 import { SETTINGS_KEY } from '../../src/shared/settings-store';
-import type { LocalProject } from '../../src/storage/db';
-import { projectRepo, settingsStore } from './services';
+import type { LocalConversation, LocalProject } from '../../src/storage/db';
+import { conversationRepo, projectRepo, settingsStore } from './services';
 
 type StorageChanges = { [key: string]: chrome.storage.StorageChange };
 
@@ -57,9 +66,9 @@ export function useProviderPermission(provider: ProviderDefinition): boolean | n
   return granted;
 }
 
-/** The "page script is alive" record for the active tab, if any. */
-export function useActiveTabStatus(): TabStatus | null {
-  const [status, setStatus] = useState<TabStatus | null>(null);
+/** A per-tab record from session storage for the tab the user is looking at. */
+function useActiveTabRecord<T>(keyFor: (tabId: number) => string, schema: ZodType<T>): T | null {
+  const [record, setRecord] = useState<T | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,15 +76,15 @@ export function useActiveTabStatus(): TabStatus | null {
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (tab?.id === undefined) {
-          if (active) setStatus(null);
+          if (active) setRecord(null);
           return;
         }
-        const key = tabStatusKey(tab.id);
+        const key = keyFor(tab.id);
         const stored = await chrome.storage.session.get(key);
-        const parsed = TabStatusSchema.safeParse(stored[key]);
-        if (active) setStatus(parsed.success ? parsed.data : null);
+        const parsed = schema.safeParse(stored[key]);
+        if (active) setRecord(parsed.success ? parsed.data : null);
       } catch {
-        if (active) setStatus(null);
+        if (active) setRecord(null);
       }
     };
     const onChange = (): void => {
@@ -91,9 +100,17 @@ export function useActiveTabStatus(): TabStatus | null {
       chrome.tabs.onUpdated.removeListener(onChange);
       chrome.storage.onChanged.removeListener(onChange);
     };
-  }, []);
+  }, [keyFor, schema]);
 
-  return status;
+  return record;
+}
+
+export function useActiveTabStatus(): TabStatus | null {
+  return useActiveTabRecord(tabStatusKey, TabStatusSchema);
+}
+
+export function useAdapterHealth(): AdapterHealthRecord | null {
+  return useActiveTabRecord(adapterHealthKey, AdapterHealthRecordSchema);
 }
 
 /** Always loads every project (including archived); components filter. */
@@ -116,4 +133,31 @@ export function useProjects() {
   }, [refresh]);
 
   return { projects, error, refresh };
+}
+
+/** Captured conversations, refreshed whenever the service worker stores new content. */
+export function useConversations() {
+  const [conversations, setConversations] = useState<LocalConversation[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async (): Promise<void> => {
+    try {
+      setConversations(await conversationRepo.list());
+      setError(null);
+    } catch (e) {
+      console.error('Continuity: could not read conversations', e);
+      setError('Could not read captured conversations from this browser.');
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    const onChanged = (changes: StorageChanges, area: string): void => {
+      if (area === 'session' && CAPTURE_TICK_KEY in changes) void refresh();
+    };
+    chrome.storage.onChanged.addListener(onChanged);
+    return () => chrome.storage.onChanged.removeListener(onChanged);
+  }, [refresh]);
+
+  return { conversations, error, refresh };
 }

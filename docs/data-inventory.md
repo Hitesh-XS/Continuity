@@ -21,3 +21,5 @@ Notes:
 - `sync_mode` is enforced on the server: a `metadata_only` project refuses checkpoint uploads.
 - Deleting a project deletes its checkpoints. Backups may keep copies until they expire
   (policy to be written in Phase 13).
+- | Captured conversations and messages (from claude.ai, only while capture is On) | IndexedDB `continuity` → `conversations`, `messages` | never (not built; any future sync is per-project and opt-in) | never |
+- | Page-reader health (counts and a state, no text) | `chrome.storage.session` (cleared when the browser closes) | never | never |

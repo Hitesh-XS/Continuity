@@ -1,8 +1,21 @@
 import { useEffect, useState } from 'react';
-import { useActiveTabStatus } from '../hooks';
+import { useActiveTabStatus, useAdapterHealth } from '../hooks';
 
-export function DebugCard({ projectCount }: { projectCount: number | null }) {
+const HEALTH_TEXT = {
+  ok: 'Reading normally',
+  degraded: 'Claude page layout not recognised: messages cannot be read',
+  no_transcript: 'No conversation found on this page (it may still be loading)',
+  no_conversation: 'This page is not a conversation',
+} as const;
+
+interface Props {
+  projectCount: number | null;
+  conversationCount: number | null;
+}
+
+export function DebugCard({ projectCount, conversationCount }: Props) {
   const tab = useActiveTabStatus();
+  const health = useAdapterHealth();
   const [persisted, setPersisted] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -18,11 +31,21 @@ export function DebugCard({ projectCount }: { projectCount: number | null }) {
         <dd>{chrome.runtime.getManifest().version}</dd>
         <dt>Projects in this browser</dt>
         <dd>{projectCount ?? '…'}</dd>
+        <dt>Captured conversations</dt>
+        <dd>{conversationCount ?? '…'}</dd>
         <dt>Persistent storage granted</dt>
         <dd>{persisted === null ? 'unknown' : persisted ? 'yes' : 'no (best effort)'}</dd>
         <dt>Active tab</dt>
         <dd>
-          {tab ? `${tab.providerId} page at ${tab.path} (seen ${tab.seenAt})` : 'no supported page detected'}
+          {tab
+            ? `${tab.providerId} page at ${tab.path} (seen ${tab.seenAt})`
+            : 'no supported page detected'}
+        </dd>
+        <dt>Page reading</dt>
+        <dd>
+          {health
+            ? `${HEALTH_TEXT[health.state]} (rows ${health.rows}, read ${health.extracted}, skipped ${health.unrecognized})`
+            : 'no report yet (capture must be On)'}
         </dd>
       </dl>
     </section>

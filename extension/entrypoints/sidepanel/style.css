@@ -59,3 +59,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 dl { margin: 6px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
 dt { color: var(--muted); }
 dd { margin: 0; word-break: break-word; }
+
+.small-text { font-size: 12px; margin: 2px 0 6px; }
+.messages { margin-top: 8px; display: grid; gap: 6px; max-height: 360px; overflow-y: auto; }
+.msg-wrap { border-left: 2px solid var(--border); padding-left: 8px; }
+.role { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.msg { white-space: pre-wrap; word-break: break-word; font-size: 13px; }
