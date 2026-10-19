@@ -22,6 +22,7 @@ const SEL = CLAUDE_SELECTORS;
 const ROLE_BY_ROW: Partial<Record<string, MessageRole>> = { human: 'user', assistant: 'assistant' };
 
 type SnapshotMessage = Snapshot['messages'][number];
+type HealthDetail = NonNullable<AdapterHealth['detail']>;
 
 export type ExtractOutcome =
   | { kind: 'no_conversation'; health: AdapterHealth }
@@ -50,19 +51,31 @@ function isStreaming(row: Element): boolean {
   );
 }
 
-function rowText(row: Element, role: MessageRole): string {
+interface RowRead {
+  text: string;
+  /** False when the row has no text container at all (a selector problem). */
+  found: boolean;
+  /** Length of the raw text inside the container(s), before conversion. Counts only. */
+  rawChars: number;
+}
+
+function readRow(row: Element, role: MessageRole): RowRead {
   if (role === 'user') {
     const element = row.querySelector(SEL.userMessage);
-    return element ? elementToText(element) : '';
+    if (!element) return { text: '', found: false, rawChars: 0 };
+    return { text: elementToText(element), found: true, rawChars: element.textContent?.length ?? 0 };
   }
   const containers = Array.from(row.querySelectorAll(SEL.replyText));
   const outermost = containers.filter(
     (element) => !containers.some((other) => other !== element && other.contains(element)),
   );
-  return outermost
+  if (outermost.length === 0) return { text: '', found: false, rawChars: 0 };
+  const text = outermost
     .map((element) => elementToText(element))
-    .filter((text) => text !== '')
+    .filter((part) => part !== '')
     .join('\n\n');
+  const rawChars = outermost.reduce((sum, element) => sum + (element.textContent?.length ?? 0), 0);
+  return { text, found: true, rawChars };
 }
 
 /** Keeps the newest messages that fit the snapshot limits. */
@@ -104,6 +117,16 @@ export function domFingerprint(root: ParentNode): string {
     .join('|');
 }
 
+function makeHealth(
+  state: AdapterHealth['state'],
+  rows: number,
+  extracted: number,
+  unrecognized: number,
+  detail?: HealthDetail,
+): AdapterHealth {
+  return { state, rows, extracted, unrecognized, ...(detail ? { detail } : {}) };
+}
+
 export function extractClaudeSnapshot(root: ParentNode, input: ExtractInput): ExtractOutcome {
   const conversationId = CLAUDE.conversationIdFromUrl(input.url);
   if (!conversationId) {
@@ -117,14 +140,29 @@ export function extractClaudeSnapshot(root: ParentNode, input: ExtractInput): Ex
   const rows = Array.from(transcript.querySelectorAll(SEL.row));
   const messages: SnapshotMessage[] = [];
   const seenIndexes = new Set<number>();
-  let unrecognized = 0;
+  const detail: HealthDetail = {
+    noIndex: 0,
+    unknownRole: 0,
+    duplicateIndex: 0,
+    noTextContainer: 0,
+    emptyText: 0,
+    emptyTextRawChars: 0,
+  };
   let streaming = false;
 
   for (const row of rows) {
     const index = parseIndex(row);
+    if (index === undefined) {
+      detail.noIndex += 1;
+      continue;
+    }
     const role = ROLE_BY_ROW[row.getAttribute('data-perf-row') ?? ''];
-    if (index === undefined || role === undefined || seenIndexes.has(index)) {
-      unrecognized += 1;
+    if (role === undefined) {
+      detail.unknownRole += 1;
+      continue;
+    }
+    if (seenIndexes.has(index)) {
+      detail.duplicateIndex += 1;
       continue;
     }
     seenIndexes.add(index);
@@ -133,22 +171,33 @@ export function extractClaudeSnapshot(root: ParentNode, input: ExtractInput): Ex
       streaming = true; // finished rows are still captured; this one is picked up when it ends
       continue;
     }
-    const text = rowText(row, role);
-    if (text === '') {
-      unrecognized += 1;
+    const read = readRow(row, role);
+    if (!read.found) {
+      detail.noTextContainer += 1;
+      continue;
+    }
+    if (read.text === '') {
+      detail.emptyText += 1;
+      detail.emptyTextRawChars += read.rawChars;
       continue;
     }
     messages.push({
       index,
       role,
-      text: text.length > MAX_MESSAGE_CHARS ? text.slice(0, MAX_MESSAGE_CHARS) : text,
+      text: read.text.length > MAX_MESSAGE_CHARS ? read.text.slice(0, MAX_MESSAGE_CHARS) : read.text,
     });
   }
 
   messages.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
   const kept = fitLimits(messages);
+  const unrecognized =
+    detail.noIndex +
+    detail.unknownRole +
+    detail.duplicateIndex +
+    detail.noTextContainer +
+    detail.emptyText;
   const state = rows.length > 0 && kept.length === 0 && unrecognized > 0 ? 'degraded' : 'ok';
-  const health = makeHealth(state, rows.length, kept.length, unrecognized);
+  const health = makeHealth(state, rows.length, kept.length, unrecognized, detail);
 
   if (kept.length === 0) return { kind: 'empty', health, streaming };
 
@@ -163,13 +212,4 @@ export function extractClaudeSnapshot(root: ParentNode, input: ExtractInput): Ex
     health,
     streaming,
   };
-}
-
-function makeHealth(
-  state: AdapterHealth['state'],
-  rows: number,
-  extracted: number,
-  unrecognized: number,
-): AdapterHealth {
-  return { state, rows, extracted, unrecognized };
 }

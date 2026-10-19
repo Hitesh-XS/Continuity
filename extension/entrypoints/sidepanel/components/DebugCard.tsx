@@ -23,6 +23,8 @@ export function DebugCard({ projectCount, conversationCount }: Props) {
     if (result) void result.then(setPersisted).catch(() => setPersisted(null));
   }, []);
 
+  const d = health?.detail;
+
   return (
     <section className="card">
       <h2>Debug</h2>
@@ -47,6 +49,14 @@ export function DebugCard({ projectCount, conversationCount }: Props) {
             ? `${HEALTH_TEXT[health.state]} (rows ${health.rows}, read ${health.extracted}, skipped ${health.unrecognized})`
             : 'no report yet (capture must be On)'}
         </dd>
+        {d && health && health.unrecognized > 0 ? (
+          <>
+            <dt>Why rows were skipped</dt>
+            <dd>
+              {`no index ${d.noIndex} · other role ${d.unknownRole} · duplicate ${d.duplicateIndex} · no text container ${d.noTextContainer} · empty text ${d.emptyText} (raw chars ${d.emptyTextRawChars})`}
+            </dd>
+          </>
+        ) : null}
       </dl>
     </section>
   );
