@@ -74,3 +74,32 @@ describe('hashText', () => {
     expect(await hashText('hello')).not.toBe(await hashText('hello!'));
   });
 });
+describe('SnapshotSchema: message index', () => {
+  const withIndex = (index: number) => ({
+    externalConversationId: 'abc-123',
+    messages: [{ index, role: 'user', text: 'Hi' }],
+  });
+
+  it('accepts absolute message indexes', () => {
+    expect(SnapshotSchema.safeParse(withIndex(7)).success).toBe(true);
+  });
+
+  it.each<[string, number]>([
+    ['negative index', -1],
+    ['fractional index', 1.5],
+    ['index too large', 1_000_001],
+  ])('rejects %s', (_label, index) => {
+    expect(SnapshotSchema.safeParse(withIndex(index)).success).toBe(false);
+  });
+
+  it('rejects duplicate indexes', () => {
+    const result = SnapshotSchema.safeParse({
+      externalConversationId: 'abc-123',
+      messages: [
+        { index: 1, role: 'user', text: 'a' },
+        { index: 1, role: 'assistant', text: 'b' },
+      ],
+    });
+    expect(result.success).toBe(false);
+  });
+});

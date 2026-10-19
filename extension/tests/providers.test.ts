@@ -24,3 +24,29 @@ describe('provider registry', () => {
     expect(providerForUrl(url)).toBeUndefined();
   });
 });
+
+describe('CLAUDE.conversationIdFromUrl', () => {
+  const ID = '0b1c2d3e-aaaa-4bbb-8ccc-1234567890ab';
+
+  it.each([
+    `https://claude.ai/chat/${ID}`,
+    `https://claude.ai/chat/${ID}/`,
+    `https://claude.ai/chat/${ID}?x=1#top`,
+  ])('reads the id from %s', (url) => {
+    expect(CLAUDE.conversationIdFromUrl(url)).toBe(ID);
+  });
+
+  it.each([
+    'https://claude.ai/new',
+    'https://claude.ai/chat/',
+    'https://claude.ai/chat/short',
+    'https://claude.ai/recents',
+    `https://claude.ai/chat/${ID}/extra`,
+    `https://claude.ai.evil.example/chat/${ID}`,
+    `http://claude.ai/chat/${ID}`,
+    'not a url',
+    undefined,
+  ])('returns nothing for %s', (url) => {
+    expect(CLAUDE.conversationIdFromUrl(url)).toBeUndefined();
+  });
+});

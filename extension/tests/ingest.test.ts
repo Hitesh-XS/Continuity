@@ -201,3 +201,32 @@ describe('capture ingestion', () => {
     expect(result).toMatchObject({ inserted: 1, updated: 2, unchanged: 0 });
   });
 });
+const msg = (index: number, role: 'user' | 'assistant', text: string) => ({ index, role, text });
+
+describe('capture ingestion: absolute page indexes', () => {
+  it('keeps page indexes as ordinals when a later snapshot covers only a window', async () => {
+    await store.ingest(
+      snap([msg(0, 'user', 'm0'), msg(1, 'assistant', 'm1'), msg(2, 'user', 'm2'), msg(3, 'assistant', 'm3')]),
+      ctx,
+    );
+    const result = await store.ingest(
+      snap([msg(2, 'user', 'm2'), msg(3, 'assistant', 'm3 edited'), msg(4, 'user', 'm4')]),
+      ctx,
+    );
+    expect(result).toMatchObject({ inserted: 1, updated: 1, unchanged: 1 });
+    const stored = await allMessages();
+    expect(stored.map((m) => [m.ordinal, m.text])).toEqual([
+      [0, 'm0'],
+      [1, 'm1'],
+      [2, 'm2'],
+      [3, 'm3 edited'],
+      [4, 'm4'],
+    ]);
+    expect((await db.conversations.get('claude:abc'))?.messageCount).toBe(5);
+  });
+
+  it('derives the message key from the page index', async () => {
+    await store.ingest(snap([msg(7, 'user', 'x')]), ctx);
+    expect(await db.messages.get('claude:abc#o7')).toMatchObject({ ordinal: 7, text: 'x' });
+  });
+});
