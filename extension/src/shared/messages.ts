@@ -8,11 +8,24 @@ export const CaptureStatusSchema = z.enum(['off', 'paused', 'on']);
 export type CaptureStatus = z.infer<typeof CaptureStatusSchema>;
 
 /** How well the page adapter understands the current page. Metadata only, never message text. */
+const Count = z.number().int().min(0).max(1_000_000);
+
 export const AdapterHealthSchema = z.object({
   state: z.enum(['ok', 'degraded', 'no_transcript', 'no_conversation']),
-  rows: z.number().int().min(0).max(1_000_000),
-  extracted: z.number().int().min(0).max(1_000_000),
-  unrecognized: z.number().int().min(0).max(1_000_000),
+  rows: Count,
+  extracted: Count,
+  unrecognized: Count,
+  /** Why rows were skipped. Counts only, never message text. */
+  detail: z
+    .object({
+      noIndex: Count,
+      unknownRole: Count,
+      duplicateIndex: Count,
+      noTextContainer: Count,
+      emptyText: Count,
+      emptyTextRawChars: z.number().int().min(0).max(100_000_000),
+    })
+    .optional(),
 });
 export type AdapterHealth = z.infer<typeof AdapterHealthSchema>;
 

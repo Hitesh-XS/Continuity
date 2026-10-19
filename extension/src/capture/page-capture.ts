@@ -35,7 +35,11 @@ function hashString(text: string): string {
 }
 
 function responseOk(response: unknown): boolean {
-  return typeof response === 'object' && response !== null && (response as { ok?: unknown }).ok === true;
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    (response as { ok?: unknown }).ok === true
+  );
 }
 
 function responseError(response: unknown): string {
@@ -47,7 +51,10 @@ function responseError(response: unknown): string {
  * Reads the page ONLY while status is "on". Everything else (debounce, streaming, navigation,
  * pause/resume) is decided here so it can be tested without a browser.
  */
-export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOptions = {}) {
+export function createPageCapture(
+  deps: PageCaptureDeps,
+  options: PageCaptureOptions = {},
+) {
   const quietMs = options.quietMs ?? 1500;
   const pollMs = options.pollMs ?? 300;
   const graceMs = options.navigationGraceMs ?? 10_000;
@@ -102,6 +109,7 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
     lastUrl = url;
     lastSignature = '';
     lastHealthKey = '';
+
     // Remember what was on screen at the moment the URL changed. Until the page content
     // differs from this, any rows we can see still belong to the PREVIOUS conversation.
     staleFingerprint = domFingerprint(deps.root);
@@ -113,10 +121,12 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
   function poll(): void {
     pollTimer = undefined;
     if (stopped) return;
+
     if (deps.isAlive && !deps.isAlive()) {
       stop();
       return;
     }
+
     if (status === 'on') {
       const url = deps.getUrl();
       if (url !== lastUrl) onNavigation(url);
@@ -124,14 +134,19 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
     } else {
       lastUrl = deps.getUrl();
     }
+
     pollTimer = setTimeout(poll, pollMs);
   }
 
   async function reportHealth(health: AdapterHealth): Promise<void> {
-    const key = `${health.state}|${health.rows}|${health.extracted}|${health.unrecognized}`;
+    const key = JSON.stringify(health);
     if (key === lastHealthKey) return;
     lastHealthKey = key;
-    await deps.send({ type: 'capture.health', providerId: CLAUDE.id, health });
+    await deps.send({
+      type: 'capture.health',
+      providerId: CLAUDE.id,
+      health,
+    });
   }
 
   async function runOnce(): Promise<void> {
@@ -148,6 +163,7 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
 
     const conversationId = CLAUDE.conversationIdFromUrl(url);
     const skip = conversationId ? baselines.get(conversationId) : undefined;
+
     const outcome = extractClaudeSnapshot(deps.root, {
       url,
       title: deps.getTitle(),
@@ -156,9 +172,13 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
 
     await reportHealth(outcome.health);
 
-    if ((outcome.kind === 'snapshot' || outcome.kind === 'empty') && outcome.streaming) {
+    if (
+      (outcome.kind === 'snapshot' || outcome.kind === 'empty') &&
+      outcome.streaming
+    ) {
       schedule(2000); // a reply is still being written: look again shortly
     }
+
     if (outcome.kind !== 'snapshot') return;
 
     const signature = hashString(JSON.stringify(outcome.snapshot));
@@ -169,6 +189,7 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
       providerId: CLAUDE.id,
       snapshot: outcome.snapshot,
     });
+
     if (responseOk(response)) {
       lastSignature = signature;
     } else {
@@ -179,10 +200,12 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
 
   async function run(): Promise<void> {
     if (stopped || status !== 'on') return;
+
     if (running) {
       schedule(quietMs);
       return;
     }
+
     running = true;
     try {
       await runOnce();
@@ -193,6 +216,7 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
 
   function setStatus(next: CaptureStatus): void {
     if (next === status) return;
+
     const previous = status;
     status = next;
     clearRun();
@@ -204,12 +228,16 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
     }
 
     if (previous === 'off') baselines.clear();
+
     if (previous === 'paused') {
       // Messages already on screen were written during the pause: never capture them.
       const conversationId = CLAUDE.conversationIdFromUrl(deps.getUrl());
       const max = maxRowIndex(deps.root);
-      if (conversationId && max !== undefined) baselines.set(conversationId, max);
+      if (conversationId && max !== undefined) {
+        baselines.set(conversationId, max);
+      }
     }
+
     lastUrl = deps.getUrl();
     lastHealthKey = '';
     attach();
@@ -224,6 +252,7 @@ export function createPageCapture(deps: PageCaptureDeps, options: PageCaptureOpt
   function stop(): void {
     stopped = true;
     clearRun();
+
     if (pollTimer !== undefined) clearTimeout(pollTimer);
     pollTimer = undefined;
     detach();
