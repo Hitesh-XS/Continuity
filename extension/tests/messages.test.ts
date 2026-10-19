@@ -45,3 +45,19 @@ describe('TabStatusSchema', () => {
     expect(tabStatusKey(42)).toBe('tabStatus:42');
   });
 });
+describe('capture.health message', () => {
+  const health = { state: 'ok', rows: 4, extracted: 4, unrecognized: 0 };
+  const wrap = (value: unknown) => ({ type: 'capture.health', providerId: 'claude', health: value });
+
+  it('accepts a valid health report', () => {
+    expect(ExtensionMessageSchema.safeParse(wrap(health)).success).toBe(true);
+  });
+
+  it('rejects a negative count', () => {
+    expect(ExtensionMessageSchema.safeParse(wrap({ ...health, rows: -1 })).success).toBe(false);
+  });
+
+  it('rejects an unknown state', () => {
+    expect(ExtensionMessageSchema.safeParse(wrap({ ...health, state: 'great' })).success).toBe(false);
+  });
+});

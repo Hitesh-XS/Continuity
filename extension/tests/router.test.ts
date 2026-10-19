@@ -4,16 +4,22 @@ import { routeMessage, type RouterDeps } from '../src/shared/router';
 
 const EXT_ID = 'abcdefghijklmnopabcdefghijklmnop';
 const NOW = '2026-10-17T10:00:00.000Z';
-const goodSender = { id: EXT_ID, url: 'https://claude.ai/chat/1', tab: { id: 7 } };
-const readyMessage = { type: 'content.ready', providerId: 'claude', path: '/chat/1' };
+const CONVERSATION_ID = '0b1c2d3e-aaaa-4bbb-8ccc-1234567890ab';
+const goodSender = {
+  id: EXT_ID,
+  url: `https://claude.ai/chat/${CONVERSATION_ID}`,
+  tab: { id: 7 },
+};
+const readyMessage = { type: 'content.ready', providerId: 'claude', path: '/chat/x' };
 
 function makeDeps(status: CaptureStatus = 'on'): RouterDeps {
   return {
     extensionId: EXT_ID,
     getCaptureStatus: vi.fn(async () => status),
     saveTabStatus: vi.fn(async () => undefined),
+    saveAdapterHealth: vi.fn(async () => undefined),
     ingest: vi.fn(async () => ({
-      conversationId: 'claude:abc',
+      conversationId: `claude:${CONVERSATION_ID}`,
       inserted: 2,
       updated: 0,
       unchanged: 0,
@@ -28,7 +34,7 @@ describe('routeMessage', () => {
     expect(await routeMessage(readyMessage, goodSender, deps)).toEqual({ ok: true });
     expect(deps.saveTabStatus).toHaveBeenCalledWith(7, {
       providerId: 'claude',
-      path: '/chat/1',
+      path: '/chat/x',
       seenAt: NOW,
     });
   });
@@ -83,7 +89,10 @@ describe('routeMessage: capture.snapshot', () => {
   const snapshotMessage = {
     type: 'capture.snapshot',
     providerId: 'claude',
-    snapshot: { externalConversationId: 'abc', messages: [{ role: 'user', text: 'Hi' }] },
+    snapshot: {
+      externalConversationId: CONVERSATION_ID,
+      messages: [{ index: 0, role: 'user', text: 'Hi' }],
+    },
   };
 
   it('ingests the snapshot when capture is on', async () => {
@@ -109,7 +118,10 @@ describe('routeMessage: capture.snapshot', () => {
 
   it('refuses an invalid snapshot', async () => {
     const deps = makeDeps('on');
-    const bad = { ...snapshotMessage, snapshot: { externalConversationId: 'abc', messages: [] } };
+    const bad = {
+      ...snapshotMessage,
+      snapshot: { externalConversationId: CONVERSATION_ID, messages: [] },
+    };
     expect(await routeMessage(bad, goodSender, deps)).toEqual({
       ok: false,
       error: 'invalid_message',
@@ -126,5 +138,56 @@ describe('routeMessage: capture.snapshot', () => {
     );
     expect(response).toEqual({ ok: false, error: 'forbidden' });
     expect(deps.ingest).not.toHaveBeenCalled();
+  });
+
+  it('refuses a snapshot for a different conversation than the tab is showing', async () => {
+    const deps = makeDeps('on');
+    const other = {
+      ...snapshotMessage,
+      snapshot: { ...snapshotMessage.snapshot, externalConversationId: 'ffffffff-1111-4222-8333-444444444444' },
+    };
+    expect(await routeMessage(other, goodSender, deps)).toEqual({ ok: false, error: 'forbidden' });
+    expect(deps.ingest).not.toHaveBeenCalled();
+  });
+
+  it('refuses a snapshot from a page that is not a conversation', async () => {
+    const deps = makeDeps('on');
+    const response = await routeMessage(
+      snapshotMessage,
+      { id: EXT_ID, url: 'https://claude.ai/new', tab: { id: 7 } },
+      deps,
+    );
+    expect(response).toEqual({ ok: false, error: 'forbidden' });
+    expect(deps.ingest).not.toHaveBeenCalled();
+  });
+});
+
+describe('routeMessage: capture.health', () => {
+  const health = { state: 'ok', rows: 4, extracted: 4, unrecognized: 0 };
+
+  it('stores the health report for the sender tab', async () => {
+    const deps = makeDeps();
+    const response = await routeMessage(
+      { type: 'capture.health', providerId: 'claude', health },
+      goodSender,
+      deps,
+    );
+    expect(response).toEqual({ ok: true });
+    expect(deps.saveAdapterHealth).toHaveBeenCalledWith(7, {
+      providerId: 'claude',
+      ...health,
+      seenAt: NOW,
+    });
+  });
+
+  it('rejects an invalid health report', async () => {
+    const deps = makeDeps();
+    const response = await routeMessage(
+      { type: 'capture.health', providerId: 'claude', health: { ...health, rows: -5 } },
+      goodSender,
+      deps,
+    );
+    expect(response).toEqual({ ok: false, error: 'invalid_message' });
+    expect(deps.saveAdapterHealth).not.toHaveBeenCalled();
   });
 });
