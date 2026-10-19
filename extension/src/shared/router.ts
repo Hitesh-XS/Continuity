@@ -1,6 +1,11 @@
 import type { IngestResult } from '../capture/ingest';
 import type { Snapshot } from '../capture/snapshot';
-import { ExtensionMessageSchema, type CaptureStatus, type TabStatus } from './messages';
+import {
+  ExtensionMessageSchema,
+  type AdapterHealthRecord,
+  type CaptureStatus,
+  type TabStatus,
+} from './messages';
 import {
   getProvider,
   providerForUrl,
@@ -19,6 +24,7 @@ export interface RouterDeps {
   extensionId: string;
   getCaptureStatus(provider: ProviderDefinition): Promise<CaptureStatus>;
   saveTabStatus(tabId: number, status: TabStatus): Promise<void>;
+  saveAdapterHealth(tabId: number, record: AdapterHealthRecord): Promise<void>;
   ingest(providerId: ProviderId, snapshot: Snapshot): Promise<IngestResult>;
   now(): string;
 }
@@ -63,7 +69,19 @@ export async function routeMessage(
     case 'capture.getState':
       return { ok: true, status: await deps.getCaptureStatus(provider) };
 
+    case 'capture.health':
+      await deps.saveAdapterHealth(tabId, {
+        providerId: provider.id,
+        ...message.health,
+        seenAt: deps.now(),
+      });
+      return { ok: true };
+
     case 'capture.snapshot': {
+      // A snapshot may only describe the conversation the sender's tab is actually showing.
+      if (provider.conversationIdFromUrl(sender.url) !== message.snapshot.externalConversationId) {
+        return { ok: false, error: 'forbidden' };
+      }
       // Re-check on every snapshot: Off and Paused must stop storage immediately,
       // even if a page script has not noticed the change yet.
       if ((await deps.getCaptureStatus(provider)) !== 'on') {
