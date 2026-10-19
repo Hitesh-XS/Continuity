@@ -35,7 +35,9 @@ export function createCaptureStore(db: ContinuityDb, options: { now?: () => stri
     // Hash BEFORE the transaction: Dexie transactions must not await non-Dexie promises
     // (like crypto.subtle), or they commit early and later writes fail.
     const prepared = await Promise.all(
-      snapshot.messages.map(async (message, ordinal) => {
+      snapshot.messages.map(async (message, position) => {
+        // Prefer the page's own absolute index: the page may render only a window of a long chat.
+        const ordinal = message.index ?? position;
         const key = message.key ?? `o${ordinal}`;
         return {
           id: messageIdFor(conversationId, key),

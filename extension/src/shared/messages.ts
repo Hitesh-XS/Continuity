@@ -7,6 +7,15 @@ export const ProviderIdSchema = z.enum(PROVIDER_IDS);
 export const CaptureStatusSchema = z.enum(['off', 'paused', 'on']);
 export type CaptureStatus = z.infer<typeof CaptureStatusSchema>;
 
+/** How well the page adapter understands the current page. Metadata only, never message text. */
+export const AdapterHealthSchema = z.object({
+  state: z.enum(['ok', 'degraded', 'no_transcript', 'no_conversation']),
+  rows: z.number().int().min(0).max(1_000_000),
+  extracted: z.number().int().min(0).max(1_000_000),
+  unrecognized: z.number().int().min(0).max(1_000_000),
+});
+export type AdapterHealth = z.infer<typeof AdapterHealthSchema>;
+
 const ContentReadyMessageSchema = z.object({
   type: z.literal('content.ready'),
   providerId: ProviderIdSchema,
@@ -24,11 +33,18 @@ const CaptureSnapshotMessageSchema = z.object({
   snapshot: SnapshotSchema,
 });
 
+const CaptureHealthMessageSchema = z.object({
+  type: z.literal('capture.health'),
+  providerId: ProviderIdSchema,
+  health: AdapterHealthSchema,
+});
+
 /** Every message a content script may send to the service worker. */
 export const ExtensionMessageSchema = z.discriminatedUnion('type', [
   ContentReadyMessageSchema,
   CaptureGetStateMessageSchema,
   CaptureSnapshotMessageSchema,
+  CaptureHealthMessageSchema,
 ]);
 export type ExtensionMessage = z.infer<typeof ExtensionMessageSchema>;
 
@@ -40,4 +56,14 @@ export const TabStatusSchema = z.object({
 });
 export type TabStatus = z.infer<typeof TabStatusSchema>;
 
+export const AdapterHealthRecordSchema = AdapterHealthSchema.extend({
+  providerId: ProviderIdSchema,
+  seenAt: z.string().max(40),
+});
+export type AdapterHealthRecord = z.infer<typeof AdapterHealthRecordSchema>;
+
 export const tabStatusKey = (tabId: number): string => `tabStatus:${tabId}`;
+export const adapterHealthKey = (tabId: number): string => `adapterHealth:${tabId}`;
+
+/** Bumped (in session storage) whenever captured content changes, so the panel can refresh. */
+export const CAPTURE_TICK_KEY = 'captureTick';
