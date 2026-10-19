@@ -88,19 +88,22 @@ export function CaptureCard({ provider, settings }: Props) {
           </p>
           <ul className="disclosure">
             <li>
-              <strong>This version only detects</strong> that a {provider.displayName} page is open.
-              It does not read your messages yet.
+              Once enabled, Continuity <strong>reads the visible messages</strong> (yours and{' '}
+              {provider.displayName}&apos;s) of the conversation you have open on this site, and saves
+              them <strong>in this browser only</strong> (IndexedDB).
+            </li>
+            <li>It reads nothing on other sites or pages, and only while capture shows On.</li>
+            <li>
+              Nothing is sent to any server or AI provider unless you later turn on sync or AI
+              processing for a project, and the app will say exactly what is sent.
             </li>
             <li>
-              Later versions will read the <strong>visible messages</strong> of conversations on this
-              site and keep them <strong>in this browser</strong> (IndexedDB).
+              You can view and delete captured conversations in this panel. Pause or Remove access
+              stops reading immediately.
             </li>
             <li>
-              Nothing is sent to any server or AI provider unless you turn on sync or AI processing
-              for a project, and the app will say exactly what is sent.
-            </li>
-            <li>
-              You can pause at any time, or remove access to revoke Chrome&apos;s permission.
+              Messages written while Paused are skipped after you resume, but reloading the page may
+              save them.
             </li>
           </ul>
           <label className="check">

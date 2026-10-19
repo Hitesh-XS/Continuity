@@ -1,4 +1,5 @@
-import { CaptureStatusSchema, type CaptureStatus } from '../src/shared/messages';
+import { createPageCapture } from '../src/capture/page-capture';
+import { CaptureStatusSchema } from '../src/shared/messages';
 import { CLAUDE } from '../src/shared/providers';
 import { SETTINGS_KEY } from '../src/shared/settings-store';
 
@@ -12,8 +13,6 @@ export default defineContentScript({
     if (globals.__continuityContentLoaded) return;
     globals.__continuityContentLoaded = true;
 
-    const state: { captureStatus: CaptureStatus } = { captureStatus: 'off' };
-
     async function send(message: unknown): Promise<unknown> {
       try {
         return await chrome.runtime.sendMessage(message);
@@ -22,16 +21,39 @@ export default defineContentScript({
       }
     }
 
+    const capture = createPageCapture({
+      root: document,
+      getUrl: () => location.href,
+      getTitle: () => document.title,
+      send,
+      observe: (target, callback) => {
+        const observer = new MutationObserver(callback);
+        observer.observe(target, { childList: true, subtree: true, characterData: true });
+        return () => observer.disconnect();
+      },
+      now: () => Date.now(),
+      isAlive: () => Boolean(chrome.runtime?.id),
+    });
+
+    let statusRetries = 0;
     async function refreshCaptureStatus(): Promise<void> {
       const response = await send({ type: 'capture.getState', providerId: CLAUDE.id });
       const parsed = CaptureStatusSchema.safeParse(
         (response as { status?: unknown } | undefined)?.status,
       );
-      state.captureStatus = parsed.success ? parsed.data : 'off';
-      // Phase 5: start or stop reading messages here, based on state.captureStatus.
+      if (parsed.success) {
+        statusRetries = 0;
+        capture.setStatus(parsed.data);
+        return;
+      }
+      if (statusRetries < 3) {
+        statusRetries += 1;
+        setTimeout(() => void refreshCaptureStatus(), 3000);
+      }
     }
 
     void send({ type: 'content.ready', providerId: CLAUDE.id, path: location.pathname });
+    capture.start();
     void refreshCaptureStatus();
 
     chrome.storage.onChanged.addListener((changes, area) => {
