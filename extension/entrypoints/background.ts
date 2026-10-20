@@ -13,9 +13,19 @@ export default defineBackground(() => {
   const db = createDb(); // the extension's own IndexedDB, not any website's
   const captureStore = createCaptureStore(db);
 
-  chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((error) => console.error('Continuity: side panel setup failed', error));
+  const enablePanelOnActionClick = (attempt = 0): void => {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch((error) => {
+      if (attempt < 3) {
+        // The service worker can still be starting: try again shortly.
+        setTimeout(() => enablePanelOnActionClick(attempt + 1), 500 * (attempt + 1));
+        return;
+      }
+      console.error('Continuity: side panel setup failed', error);
+    });
+  };
+  enablePanelOnActionClick();
+  chrome.runtime.onInstalled.addListener(() => enablePanelOnActionClick());
+  chrome.runtime.onStartup.addListener(() => enablePanelOnActionClick());
 
   const reconcileAll = (): void => {
     for (const provider of PROVIDERS) {
