@@ -65,3 +65,12 @@ dd { margin: 0; word-break: break-word; }
 .msg-wrap { border-left: 2px solid var(--border); padding-left: 8px; }
 .role { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .msg { white-space: pre-wrap; word-break: break-word; font-size: 13px; }
+
+h3 { font-size: 13px; margin: 14px 0 6px; }
+.field { display: grid; gap: 3px; margin: 8px 0; }
+.field label, .field > span { font-size: 12px; color: var(--muted); }
+textarea { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); font: inherit; resize: vertical; }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sources { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 140px; overflow-y: auto; }
+.preview { white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, Consolas, monospace; margin: 8px 0 0; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); max-height: 300px; overflow-y: auto; }
+.ok { color: var(--ok); }

@@ -108,9 +108,12 @@ export function createProjectRepository(db: ContinuityDb, options: RepositoryOpt
   }
 
   async function remove(id: string): Promise<void> {
-    await db.projects.delete(id);
+    // A project's checkpoints go with it (the server does the same on delete).
+    await db.transaction('rw', db.projects, db.checkpoints, async () => {
+      await db.checkpoints.where('projectId').equals(id).delete();
+      await db.projects.delete(id);
+    });
   }
-
   return { create, list, get, update, remove };
 }
 

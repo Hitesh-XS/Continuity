@@ -13,8 +13,8 @@ import {
 import type { ProviderDefinition } from '../../src/shared/providers';
 import type { Settings } from '../../src/shared/settings';
 import { SETTINGS_KEY } from '../../src/shared/settings-store';
-import type { LocalConversation, LocalProject } from '../../src/storage/db';
-import { conversationRepo, projectRepo, settingsStore } from './services';
+import type { LocalCheckpoint, LocalConversation, LocalProject } from '../../src/storage/db';
+import { checkpointRepo, conversationRepo, projectRepo, settingsStore } from './services';
 
 type StorageChanges = { [key: string]: chrome.storage.StorageChange };
 
@@ -160,4 +160,35 @@ export function useConversations() {
   }, [refresh]);
 
   return { conversations, error, refresh };
+}
+
+/** Checkpoints of one project, newest first. null while loading or when the project just changed. */
+export function useCheckpoints(projectId: string | null) {
+  const [state, setState] = useState<{ projectId: string | null; list: LocalCheckpoint[] } | null>(
+    null,
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async (): Promise<void> => {
+    if (!projectId) {
+      setState({ projectId, list: [] });
+      return;
+    }
+    try {
+      setState({ projectId, list: await checkpointRepo.list(projectId) });
+      setError(null);
+    } catch (e) {
+      console.error('Continuity: could not read checkpoints', e);
+      setError('Could not read checkpoints from this browser.');
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  // Ignore a result that belongs to a previously selected project.
+  const checkpoints = state && state.projectId === projectId ? state.list : null;
+
+  return { checkpoints, error, refresh };
 }
