@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.generics import (
     ListCreateAPIView,
-    RetrieveAPIView,
+    RetrieveDestroyAPIView,
     RetrieveUpdateDestroyAPIView,
     get_object_or_404,
 )
@@ -84,8 +84,8 @@ class ProjectCheckpointListCreateView(ListCreateAPIView):
         return Response(CheckpointSerializer(checkpoint).data, status=code)
 
 
-class CheckpointDetailView(RetrieveAPIView):
-    """Read-only by construction: no PUT, PATCH or DELETE exists for checkpoints."""
+class CheckpointDetailView(RetrieveDestroyAPIView):
+    """Content is immutable (no PUT or PATCH). The owner may delete a whole checkpoint."""
 
     serializer_class = CheckpointSerializer
     lookup_field = "id"

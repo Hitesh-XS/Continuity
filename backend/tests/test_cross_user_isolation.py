@@ -17,6 +17,7 @@ CASES = [
         {"objective": "x", "state_snapshot": {}},
     ),
     ("get", "/api/v1/checkpoints/{checkpoint}/", None),
+    ("delete", "/api/v1/checkpoints/{checkpoint}/", None),
 ]
 
 
