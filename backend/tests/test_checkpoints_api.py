@@ -180,13 +180,33 @@ def test_retrieve_own_checkpoint(alice, make_project, make_checkpoint, client_fo
     assert body["state_snapshot"]["nextAction"] == "Run the tests"
 
 
-@pytest.mark.parametrize("method", ["put", "patch", "delete"])
-def test_checkpoint_endpoint_is_read_only(alice, make_project, make_checkpoint, client_for, method):
+@pytest.mark.parametrize("method", ["put", "patch"])
+def test_checkpoint_content_cannot_be_modified(alice, make_project, make_checkpoint, client_for, method):
     project = make_project(alice, sync_mode=SELECTED)
     checkpoint = make_checkpoint(project)
     response = getattr(client_for(alice), method)(detail(checkpoint.id), {}, format="json")
     assert response.status_code == 405
     assert response.json()["error"]["code"] == "method_not_allowed"
+
+
+def test_owner_can_delete_a_checkpoint(alice, make_project, make_checkpoint, client_for):
+    project = make_project(alice, sync_mode=SELECTED)
+    first = make_checkpoint(project)
+    second = make_checkpoint(project)
+    response = client_for(alice).delete(detail(first.id))
+    assert response.status_code == 204
+    assert not Checkpoint.objects.filter(pk=first.pk).exists()
+    assert Checkpoint.objects.filter(pk=second.pk).exists()
+
+
+def test_deleting_a_checkpoint_twice_is_404(alice, make_project, make_checkpoint, client_for):
+    project = make_project(alice, sync_mode=SELECTED)
+    checkpoint = make_checkpoint(project)
+    client = client_for(alice)
+    assert client.delete(detail(checkpoint.id)).status_code == 204
+    again = client.delete(detail(checkpoint.id))
+    assert again.status_code == 404
+    assert again.json()["error"]["code"] == "not_found"
 
 
 def test_existing_checkpoint_cannot_be_modified_in_code(alice, make_project, make_checkpoint):

@@ -9,6 +9,7 @@ import { linesToList } from '../../../src/checkpoints/schema';
 import type { LocalCheckpoint, LocalConversation, LocalProject } from '../../../src/storage/db';
 import { useCheckpoints } from '../hooks';
 import { checkpointRepo } from '../services';
+import { useSyncItemMap } from '../sync-hooks';
 
 interface FormState {
   objective: string;
@@ -82,6 +83,8 @@ export function CheckpointsCard({ projectId, project, conversations }: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const initialisedFor = useRef<string | null>(null);
+
+  const syncItems = useSyncItemMap();
 
   // Start the form from the latest checkpoint of the selected project (once per project).
   useEffect(() => {
@@ -286,7 +289,11 @@ export function CheckpointsCard({ projectId, project, conversations }: Props) {
           <li key={checkpoint.id}>
             <div className="row">
               <strong>Version {checkpoint.version}</strong>
-              <span className="tag">{checkpoint.reason}</span>
+              <span className="tag">
+                {checkpoint.reason}
+                {syncItems.get(`checkpoint:${checkpoint.id}`)?.status === 'synced' ? ' · on server' : ''}
+                {syncItems.get(`checkpoint:${checkpoint.id}`)?.status === 'failed' ? ' · sync failed' : ''}
+              </span>
             </div>
             <p className="muted small-text">
               {new Date(checkpoint.createdAt).toLocaleString()}

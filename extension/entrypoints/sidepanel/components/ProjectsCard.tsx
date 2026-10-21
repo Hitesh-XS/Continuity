@@ -69,6 +69,12 @@ export function ProjectsCard({ settings, state }: Props) {
     });
   };
 
+  const onSetSyncMode = (id: string, mode: 'metadata_only' | 'selected_content'): void => {
+    void guarded(async () => {
+      await projectRepo.update(id, { syncMode: mode });
+    });
+  };
+
   const onDelete = (id: string): void => {
     void guarded(async () => {
       await projectRepo.remove(id);
@@ -82,7 +88,7 @@ export function ProjectsCard({ settings, state }: Props) {
   return (
     <section className="card">
       <h2>Projects</h2>
-      <p className="muted">Stored only in this browser. Server sync arrives in a later phase.</p>
+      <p className="muted">Stored in this browser. Server sync is optional (see Server sync below).</p>
 
       <form onSubmit={onCreate} className="row gap">
         <input
@@ -157,6 +163,31 @@ export function ProjectsCard({ settings, state }: Props) {
                 </button>
               )}
             </div>
+            {project.status !== 'archived' ? (
+              <div className="field">
+                <label htmlFor={`sync-${project.id}`}>Server copy (only if sync is on)</label>
+                <select
+                  id={`sync-${project.id}`}
+                  value={project.syncMode === 'metadata_only' ? 'metadata_only' : 'selected_content'}
+                  onChange={(event) =>
+                    onSetSyncMode(
+                      project.id,
+                      event.target.value === 'selected_content' ? 'selected_content' : 'metadata_only',
+                    )
+                  }
+                >
+                  <option value="metadata_only">Project details only</option>
+                  <option value="selected_content">Details + checkpoints</option>
+                </select>
+                {project.syncMode !== 'metadata_only' ? (
+                  <p className="muted small-text">
+                    Checkpoints for this project are uploaded: objective, decisions, completed work,
+                    blockers, next action, notes and the titles of linked conversations. Chat
+                    messages are never uploaded.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>

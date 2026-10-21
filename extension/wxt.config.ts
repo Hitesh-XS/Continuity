@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt';
+import { apiMatchPattern } from './src/shared/api-config';
 import { PROVIDERS } from './src/shared/providers';
 
 // https://wxt.dev/api/config.html
@@ -9,8 +10,11 @@ export default defineConfig({
     description: 'Persistent memory for AI work: save the state of your work, not just the chat.',
     minimum_chrome_version: '116',
     permissions: ['sidePanel', 'storage', 'scripting'],
-    // Site access is optional: Chrome asks only when the user enables a provider.
-    optional_host_permissions: PROVIDERS.flatMap((provider) => [...provider.matches]),
+    // Site and server access are optional: Chrome asks only when the user enables them.
+    optional_host_permissions: [
+      ...PROVIDERS.flatMap((provider) => [...provider.matches]),
+      apiMatchPattern(),
+    ],
     action: { default_title: 'Open Continuity' },
   },
   hooks: {

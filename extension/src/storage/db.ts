@@ -8,7 +8,7 @@ export const CONVERSATION_SCHEMA_VERSION = 1;
 export const MESSAGE_SCHEMA_VERSION = 1;
 export const CHECKPOINT_SCHEMA_VERSION = 1;
 
-// Same values as the Django Project model, so projects can sync later.
+// Same values as the Django Project model, so projects can sync.
 export const PROJECT_STATUSES = ['active', 'paused', 'archived'] as const;
 export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 
@@ -73,7 +73,7 @@ export interface CheckpointSourceRef {
   lastOrdinal: number | null;
 }
 
-/** Becomes the server's `state_snapshot` when sync arrives (Phase 6b). */
+/** Becomes the server's `state_snapshot` when sync is on. */
 export interface CheckpointState {
   schemaVersion: 1;
   decisions: string[];
@@ -86,7 +86,7 @@ export interface CheckpointState {
 
 /** Immutable: the repository offers no way to change a saved checkpoint. */
 export interface LocalCheckpoint {
-  id: string; // client-generated UUID; the server will accept it as the checkpoint's ID
+  id: string; // client-generated UUID; the server accepts it as the checkpoint's ID
   projectId: string;
   version: number; // per project, local to this browser
   reason: CheckpointReason;
@@ -99,11 +99,52 @@ export interface LocalCheckpoint {
   createdAt: string;
 }
 
+// ---- Sync (Phase 6b) --------------------------------------------------------
+
+export type SyncResultKind = 'ok' | 'partial' | 'offline' | 'signed_out' | 'error';
+
+/** The signed-in session. Lives in the extension's own IndexedDB, never visible to web pages. */
+export interface AuthRecord {
+  key: 'session';
+  userId: string;
+  email: string;
+  accessToken: string;
+  accessExpiresAt: number; // epoch milliseconds
+  refreshToken: string;
+}
+
+export interface SyncConfigRecord {
+  key: 'config';
+  enabled: boolean;
+  consentAt: string | null;
+  /** The server account that `syncItems` refer to. */
+  accountId: string | null;
+  lastRunAt: string | null;
+  lastResult: SyncResultKind | null;
+  lastError: string | null;
+}
+
+/** What we know the server has. Never contains content, only identifiers and a fingerprint. */
+export interface SyncItemRecord {
+  id: string; // "project:<uuid>" or "checkpoint:<uuid>"
+  kind: 'project' | 'checkpoint';
+  entityId: string;
+  parentId: string | null; // a checkpoint's project
+  status: 'synced' | 'failed';
+  hash: string;
+  serverVersion: number | null;
+  error: string | null;
+  updatedAt: string;
+}
+
 export type ContinuityDb = Dexie & {
   projects: EntityTable<LocalProject, 'id'>;
   conversations: EntityTable<LocalConversation, 'id'>;
   messages: EntityTable<LocalMessage, 'id'>;
   checkpoints: EntityTable<LocalCheckpoint, 'id'>;
+  auth: EntityTable<AuthRecord, 'key'>;
+  syncConfig: EntityTable<SyncConfigRecord, 'key'>;
+  syncItems: EntityTable<SyncItemRecord, 'id'>;
 };
 
 export function createDb(name: string = DB_NAME): ContinuityDb {
@@ -117,6 +158,11 @@ export function createDb(name: string = DB_NAME): ContinuityDb {
   db.version(3).stores({
     // "&" makes [projectId+version] unique: the database itself refuses duplicate versions.
     checkpoints: 'id, projectId, &[projectId+version]',
+  });
+  db.version(4).stores({
+    auth: 'key',
+    syncConfig: 'key',
+    syncItems: 'id, kind, status, parentId',
   });
   return db;
 }
