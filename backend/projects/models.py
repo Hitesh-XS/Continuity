@@ -82,7 +82,7 @@ class Checkpoint(models.Model):
                 condition=models.Q(version__gte=1), name="checkpoint_version_positive"
             ),
         ]
-        
+
     def __str__(self) -> str:
         return f"{self.project_id} v{self.version}"
 
@@ -90,5 +90,3 @@ class Checkpoint(models.Model):
         if not self._state.adding:
             raise ImmutableCheckpointError("Checkpoints are immutable; create a new version.")
         super().save(*args, **kwargs)
-
-
