@@ -4,12 +4,15 @@ import { CheckpointsCard } from './components/CheckpointsCard';
 import { ConversationsCard } from './components/ConversationsCard';
 import { DebugCard } from './components/DebugCard';
 import { ProjectsCard } from './components/ProjectsCard';
+import { SyncCard } from './components/SyncCard';
 import { useConversations, useProjects, useSettings } from './hooks';
+import { useAutoSync } from './sync-hooks';
 
 export default function App() {
   const settings = useSettings();
   const projectsState = useProjects();
   const conversationsState = useConversations();
+  useAutoSync();
 
   if (!settings) return <p className="muted pad">Loading…</p>;
 
@@ -30,6 +33,7 @@ export default function App() {
         project={activeProject}
         conversations={conversationsState.conversations}
       />
+      <SyncCard />
       <ConversationsCard state={conversationsState} projects={projectsState.projects} />
       <DebugCard
         projectCount={projectsState.projects?.length ?? null}
