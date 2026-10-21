@@ -23,3 +23,5 @@ Notes:
   (policy to be written in Phase 13).
 - | Captured conversations and messages (from claude.ai, only while capture is On) | IndexedDB `continuity` → `conversations`, `messages` | never (not built; any future sync is per-project and opt-in) | never |
 - | Page-reader health (counts and a state, no text) | `chrome.storage.session` (cleared when the browser closes) | never | never |
+| Checkpoints: objective, decisions, completed work, blockers, next action, notes, and references to captured conversations (no conversation text) | IndexedDB `continuity` → `checkpoints` | not yet (Phase 6b, only for projects whose sync mode allows it) | never |
+| Exported checkpoint files | the user's Downloads folder or clipboard, on request | never | never |
