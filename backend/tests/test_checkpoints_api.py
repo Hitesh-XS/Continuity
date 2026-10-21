@@ -181,7 +181,9 @@ def test_retrieve_own_checkpoint(alice, make_project, make_checkpoint, client_fo
 
 
 @pytest.mark.parametrize("method", ["put", "patch"])
-def test_checkpoint_content_cannot_be_modified(alice, make_project, make_checkpoint, client_for, method):
+def test_checkpoint_content_cannot_be_modified(
+    alice, make_project, make_checkpoint, client_for, method
+):
     project = make_project(alice, sync_mode=SELECTED)
     checkpoint = make_checkpoint(project)
     response = getattr(client_for(alice), method)(detail(checkpoint.id), {}, format="json")
