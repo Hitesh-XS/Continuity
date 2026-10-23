@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { MessageRole } from '../capture/snapshot';
 import type { ProviderId } from '../shared/providers';
+import type { LocalMemoryItem, MemoryHistoryEntry } from '../memory/types';
 
 export const DB_NAME = 'continuity';
 export const PROJECT_SCHEMA_VERSION = 1;
@@ -145,6 +146,8 @@ export type ContinuityDb = Dexie & {
   auth: EntityTable<AuthRecord, 'key'>;
   syncConfig: EntityTable<SyncConfigRecord, 'key'>;
   syncItems: EntityTable<SyncItemRecord, 'id'>;
+  memoryItems: EntityTable<LocalMemoryItem, 'id'>;
+  memoryHistory: EntityTable<MemoryHistoryEntry, 'id'>;
 };
 
 export function createDb(name: string = DB_NAME): ContinuityDb {
@@ -163,6 +166,10 @@ export function createDb(name: string = DB_NAME): ContinuityDb {
     auth: 'key',
     syncConfig: 'key',
     syncItems: 'id, kind, status, parentId',
+  });
+  db.version(5).stores({
+    memoryItems: 'id, projectId, kind, status',
+    memoryHistory: 'id, itemId, projectId',
   });
   return db;
 }

@@ -12,14 +12,17 @@ interface Props {
     refresh: () => Promise<void>;
   };
   projects: LocalProject[] | null;
+  linkTarget?: { itemId: string; text: string } | null;
+  onUseAsEvidence?: (messageId: string) => Promise<string>;
 }
 
-export function ConversationsCard({ state, projects }: Props) {
+export function ConversationsCard({ state, projects, linkTarget = null, onUseAsEvidence }: Props) {
   const { conversations, error: loadError, refresh } = state;
   const [openId, setOpenId] = useState<string | null>(null);
   const [messages, setMessages] = useState<LocalMessage[] | null>(null);
   const [confirm, setConfirm] = useState<string | null>(null); // a conversation id, or "all"
   const [error, setError] = useState<string | null>(null);
+  const [linkNote, setLinkNote] = useState<string | null>(null);
 
   // Keep an open conversation current while new messages arrive.
   useEffect(() => {
@@ -135,6 +138,17 @@ export function ConversationsCard({ state, projects }: Props) {
                         ? `${message.text.slice(0, MAX_SHOWN_CHARS)}\n… (${message.text.length - MAX_SHOWN_CHARS} more characters)`
                         : message.text}
                     </div>
+                    {linkTarget && onUseAsEvidence ? (
+                      <button
+                        type="button"
+                        className="small secondary"
+                        onClick={() => {
+                          void onUseAsEvidence(message.id).then(setLinkNote);
+                        }}
+                      >
+                        Use as evidence
+                      </button>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -159,6 +173,8 @@ export function ConversationsCard({ state, projects }: Props) {
           </button>
         )
       ) : null}
+
+      {linkNote ? <p className="ok">{linkNote}</p> : null}
 
       {loadError || error ? (
         <p className="error" role="alert">

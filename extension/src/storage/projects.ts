@@ -108,12 +108,19 @@ export function createProjectRepository(db: ContinuityDb, options: RepositoryOpt
   }
 
   async function remove(id: string): Promise<void> {
-    // A project's checkpoints go with it (the server does the same on delete).
-    await db.transaction('rw', db.projects, db.checkpoints, async () => {
-      await db.checkpoints.where('projectId').equals(id).delete();
-      await db.projects.delete(id);
-    });
+    // A project's checkpoints and memory go with it (the server does the same for checkpoints).
+    await db.transaction(
+      'rw',
+      [db.projects, db.checkpoints, db.memoryItems, db.memoryHistory],
+      async () => {
+        await db.checkpoints.where('projectId').equals(id).delete();
+        await db.memoryItems.where('projectId').equals(id).delete();
+        await db.memoryHistory.where('projectId').equals(id).delete();
+        await db.projects.delete(id);
+      },
+    );
   }
+
   return { create, list, get, update, remove };
 }
 

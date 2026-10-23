@@ -30,3 +30,5 @@ Notes:
 | Projects: name, description, goal, status, sync setting | yes | **only after sign-in AND sync turned on** | never |
 | Checkpoints, including titles of linked conversations | yes | **only after sign-in AND sync on AND the project set to "Details + checkpoints"** | never |
 | Chat messages | yes | **never** | never |
+- | Project memory (facts, preferences, decisions, hypotheses, tasks, blockers), their status, topic, edit history (including earlier text of edited items) and references to captured messages | IndexedDB `continuity` → `memoryItems`, `memoryHistory` | **never** (memory is not synced) | never |
+| Exported memory files (Markdown or JSON) | the Downloads folder, on request | never | never |
