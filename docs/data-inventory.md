@@ -23,12 +23,12 @@ Notes:
   (policy to be written in Phase 13).
 - | Captured conversations and messages (from claude.ai, only while capture is On) | IndexedDB `continuity` → `conversations`, `messages` | never (not built; any future sync is per-project and opt-in) | never |
 - | Page-reader health (counts and a state, no text) | `chrome.storage.session` (cleared when the browser closes) | never | never |
-| Checkpoints: objective, decisions, completed work, blockers, next action, notes, and references to captured conversations (no conversation text) | IndexedDB `continuity` → `checkpoints` | not yet (Phase 6b, only for projects whose sync mode allows it) | never |
-| Exported checkpoint files | the user's Downloads folder or clipboard, on request | never | never |
--| Server session: access and refresh tokens | IndexedDB `continuity` → `auth` (extension origin: not readable by web pages or content scripts) | refresh-token blacklist rows | never |
-| Sync bookkeeping (which items the server has, errors) | IndexedDB `syncItems`, `syncConfig` (identifiers and fingerprints, no content) | never | never |
-| Projects: name, description, goal, status, sync setting | yes | **only after sign-in AND sync turned on** | never |
-| Checkpoints, including titles of linked conversations | yes | **only after sign-in AND sync on AND the project set to "Details + checkpoints"** | never |
-| Chat messages | yes | **never** | never |
+- | Checkpoints: objective, decisions, completed work, blockers, next action, notes, and references to captured conversations (no conversation text) | IndexedDB `continuity` → `checkpoints` | not yet (Phase 6b, only for projects whose sync mode allows it) | never |
+- | Exported checkpoint files | the user's Downloads folder or clipboard, on request | never | never |
+- | Server session: access and refresh tokens | IndexedDB `continuity` → `auth` (extension origin: not readable by web pages or content scripts) | refresh-token blacklist rows | never |
+- | Sync bookkeeping (which items the server has, errors) | IndexedDB `syncItems`, `syncConfig` (identifiers and fingerprints, no content) | never | never |
+- | Projects: name, description, goal, status, sync setting | yes | **only after sign-in AND sync turned on** | never |
+- | Checkpoints, including titles of linked conversations | yes | **only after sign-in AND sync on AND the project set to "Details + checkpoints"** | never |
+- | Chat messages | yes | **never** | never |
 - | Project memory (facts, preferences, decisions, hypotheses, tasks, blockers), their status, topic, edit history (including earlier text of edited items) and references to captured messages | IndexedDB `continuity` → `memoryItems`, `memoryHistory` | **never** (memory is not synced) | never |
-| Exported memory files (Markdown or JSON) | the Downloads folder, on request | never | never |
+- | Exported memory files (Markdown or JSON) | the Downloads folder, on request | never | never |
