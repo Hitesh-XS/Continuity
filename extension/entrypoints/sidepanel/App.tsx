@@ -4,6 +4,7 @@ import { CaptureCard } from './components/CaptureCard';
 import { CheckpointsCard } from './components/CheckpointsCard';
 import { ConversationsCard } from './components/ConversationsCard';
 import { DebugCard } from './components/DebugCard';
+import { HandoffCard } from './components/HandoffCard'; // <-- ADD THIS IMPORT
 import { MemoryCard, type LinkTarget } from './components/MemoryCard';
 import { ProjectsCard } from './components/ProjectsCard';
 import { SyncCard } from './components/SyncCard';
@@ -57,6 +58,11 @@ export default function App() {
         projectId={activeProject?.id ?? null}
         project={activeProject}
         conversations={conversationsState.conversations}
+      />
+      {/* ADD HANDOFF CARD HERE */}
+      <HandoffCard
+        projectId={activeProject?.id ?? null}
+        project={activeProject}
       />
       <SyncCard />
       <ConversationsCard
