@@ -12,15 +12,26 @@ export type PanelInsertOutcome = InsertResult | { ok: false; error: PanelErrorCo
 export async function insertIntoActiveClaudeTab(text: string): Promise<PanelInsertOutcome> {
   let tab: chrome.tabs.Tab | undefined;
   try {
-    [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    // Use lastFocusedWindow so side panel focus does not obscure the active browser tab
+    const [activeTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    tab = activeTab;
   } catch {
     return { ok: false, error: 'no_claude_tab' };
   }
-  // tab.url is visible only once the user has granted access to claude.ai.
-  if (tab?.id === undefined || providerForUrl(tab.url)?.id !== CLAUDE.id) {
+
+  if (tab?.id === undefined) {
     return { ok: false, error: 'no_claude_tab' };
   }
-  if (!isNewChatUrl(tab.url)) return { ok: false, error: 'not_new_chat' };
+
+  // If tab.url is available, validate host and URL path
+  if (tab.url) {
+    if (providerForUrl(tab.url)?.id !== CLAUDE.id) {
+      return { ok: false, error: 'no_claude_tab' };
+    }
+    if (!isNewChatUrl(tab.url)) {
+      return { ok: false, error: 'not_new_chat' };
+    }
+  }
 
   try {
     const response: unknown = await chrome.tabs.sendMessage(tab.id, {
