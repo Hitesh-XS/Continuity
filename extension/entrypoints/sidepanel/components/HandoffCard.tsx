@@ -51,6 +51,30 @@ export function HandoffCard({ projectId, project }: Props) {
     setError(null);
   }, [projectId]);
 
+  const selected = checkpoints?.find((checkpoint) => checkpoint.id === pickedId) ?? checkpoints?.[0];
+  const signature = JSON.stringify([
+    selected?.id ?? null,
+    options,
+    (memory ?? []).map((item) => `${item.id}:${item.updatedAt}`),
+  ]);
+
+  // Auto-generate draft package whenever selected checkpoint or options change (unless user manually edited the draft)
+  useEffect(() => {
+    if (!selected || !project || edited) return;
+    try {
+      const result = buildHandoff({
+        project,
+        checkpoint: selected,
+        memory: memory ?? [],
+        options,
+        generatedAt: new Date().toISOString(),
+      });
+      setDraft({ text: result.text, result, signature });
+    } catch (e) {
+      console.error('Continuity: could not auto-build handoff package', e instanceof Error ? e.name : 'Error');
+    }
+  }, [selected, project, memory, options, signature, edited]);
+
   if (!projectId) {
     return (
       <section className="card">
@@ -60,12 +84,6 @@ export function HandoffCard({ projectId, project }: Props) {
     );
   }
 
-  const selected = checkpoints?.find((checkpoint) => checkpoint.id === pickedId) ?? checkpoints?.[0];
-  const signature = JSON.stringify([
-    selected?.id ?? null,
-    options,
-    (memory ?? []).map((item) => `${item.id}:${item.updatedAt}`),
-  ]);
   const stale = draft !== null && draft.signature !== signature;
   const patch = (change: Partial<HandoffOptions>): void =>
     setOptions((current) => ({ ...current, ...change }));
@@ -147,7 +165,10 @@ export function HandoffCard({ projectId, project }: Props) {
             <select
               id="ho-checkpoint"
               value={selected.id}
-              onChange={(event) => setPickedId(event.target.value)}
+              onChange={(event) => {
+                setPickedId(event.target.value);
+                setEdited(false);
+              }}
             >
               {(checkpoints ?? []).map((checkpoint) => (
                 <option key={checkpoint.id} value={checkpoint.id}>
@@ -164,6 +185,7 @@ export function HandoffCard({ projectId, project }: Props) {
               onChange={(event) => {
                 const id = event.target.value as DestinationId;
                 patch({ destination: id, budgetTokens: DESTINATIONS[id].defaultBudget });
+                setEdited(false);
               }}
             >
               {DESTINATION_IDS.map((id) => (
@@ -178,7 +200,10 @@ export function HandoffCard({ projectId, project }: Props) {
             <select
               id="ho-budget"
               value={options.budgetTokens}
-              onChange={(event) => patch({ budgetTokens: Number(event.target.value) })}
+              onChange={(event) => {
+                patch({ budgetTokens: Number(event.target.value) });
+                setEdited(false);
+              }}
             >
               {destination.budgetOptions.map((value) => (
                 <option key={value} value={value}>
@@ -191,7 +216,10 @@ export function HandoffCard({ projectId, project }: Props) {
             <input
               type="checkbox"
               checked={options.includeUnverified}
-              onChange={(event) => patch({ includeUnverified: event.target.checked })}
+              onChange={(event) => {
+                patch({ includeUnverified: event.target.checked });
+                setEdited(false);
+              }}
             />
             Include unverified items (labelled as not confirmed)
           </label>
@@ -199,7 +227,10 @@ export function HandoffCard({ projectId, project }: Props) {
             <input
               type="checkbox"
               checked={options.includeDisputed}
-              onChange={(event) => patch({ includeDisputed: event.target.checked })}
+              onChange={(event) => {
+                patch({ includeDisputed: event.target.checked });
+                setEdited(false);
+              }}
             />
             Include disputed items (labelled as conflicting)
           </label>
@@ -207,7 +238,10 @@ export function HandoffCard({ projectId, project }: Props) {
             <input
               type="checkbox"
               checked={options.includeSources}
-              onChange={(event) => patch({ includeSources: event.target.checked })}
+              onChange={(event) => {
+                patch({ includeSources: event.target.checked });
+                setEdited(false);
+              }}
             />
             List conversation titles and message counts
           </label>
@@ -217,7 +251,10 @@ export function HandoffCard({ projectId, project }: Props) {
               id="ho-extra"
               rows={4}
               value={options.extraMaterial}
-              onChange={(event) => patch({ extraMaterial: event.target.value })}
+              onChange={(event) => {
+                patch({ extraMaterial: event.target.value });
+                setEdited(false);
+              }}
             />
           </div>
 
