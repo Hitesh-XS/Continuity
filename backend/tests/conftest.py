@@ -82,3 +82,28 @@ def make_checkpoint(db):
         )
 
     return _make
+
+
+@pytest.fixture
+def ai_on(settings):
+    """A fully configured, enabled AI feature with test prices ($1 in, $5 out per million tokens)."""
+    settings.AI_ENABLED = True
+    settings.ANTHROPIC_API_KEY = "test-key-not-real"
+    settings.AI_MODEL = "test-model"
+    settings.AI_PRICE_INPUT_PER_MTOK_USD = "1.00"
+    settings.AI_PRICE_OUTPUT_PER_MTOK_USD = "5.00"
+    settings.AI_MONTHLY_BUDGET_USD = "5.00"
+    settings.AI_MAX_INPUT_CHARS = 40_000
+    settings.AI_MAX_OUTPUT_TOKENS = 2_000
+    settings.AI_REQUEST_TIMEOUT_SECONDS = 30
+    return settings
+
+
+@pytest.fixture
+def give_consent(db):
+    from ai.models import AIConsent
+
+    def _give(user, version: int = 1):
+        return AIConsent.objects.update_or_create(user=user, defaults={"version": version})[0]
+
+    return _give

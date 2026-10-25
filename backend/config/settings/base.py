@@ -31,8 +31,7 @@ INSTALLED_APPS = [
     "accounts",
     "common",
     "projects",
-    "ai"
-
+    "ai",
 ]
 
 MIDDLEWARE = [
@@ -110,11 +109,10 @@ REST_FRAMEWORK = {
         "auth_register": "20/hour",
         "auth_login": "10/min",
         "auth_refresh": "30/min",
-        "ai_extract": "20/hour"
+        "ai_extract": "20/hour",
     },
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
-
 }
 
 SIMPLE_JWT = {
