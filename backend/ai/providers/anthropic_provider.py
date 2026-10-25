@@ -95,7 +95,9 @@ class AnthropicProvider:
         if not response.is_success:
             kind, retryable = _classify_status(response.status_code)
             logger.warning(
-                "anthropic request failed status=%s type=%s", response.status_code, _error_type(response)
+                "anthropic request failed status=%s type=%s",
+                response.status_code,
+                _error_type(response),
             )
             raise ProviderError(
                 kind,
@@ -108,7 +110,9 @@ class AnthropicProvider:
         except ValueError:
             payload = None
         if not isinstance(payload, dict):
-            raise ProviderError("invalid_output", "The AI service sent an unreadable answer.", retryable=True)
+            raise ProviderError(
+                "invalid_output", "The AI service sent an unreadable answer.", retryable=True
+            )
 
         usage = payload.get("usage") if isinstance(payload.get("usage"), dict) else {}
         input_tokens = _count(usage.get("input_tokens"))
@@ -125,7 +129,11 @@ class AnthropicProvider:
 
         data: object = None
         for block in payload.get("content") or []:
-            if isinstance(block, dict) and block.get("type") == "tool_use" and block.get("name") == tool_name:
+            if (
+                isinstance(block, dict)
+                and block.get("type") == "tool_use"
+                and block.get("name") == tool_name
+            ):
                 data = block.get("input")
                 break
         if not isinstance(data, dict):

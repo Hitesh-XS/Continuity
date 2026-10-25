@@ -9,6 +9,7 @@ class Conflict(APIException):
     default_detail = "The request conflicts with existing data."
     default_code = "conflict"
 
+
 class ApiProblem(APIException):
     """An error with an explicit HTTP status and a stable machine-readable `code`."""
 

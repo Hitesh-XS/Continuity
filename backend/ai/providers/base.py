@@ -15,7 +15,9 @@ class ProviderError(Exception):
         output_tokens: int = 0,
     ) -> None:
         super().__init__(message)
-        self.kind = kind  # auth | rate_limited | unavailable | timeout | bad_request | invalid_output
+        self.kind = (
+            kind  # auth | rate_limited | unavailable | timeout | bad_request | invalid_output
+        )
         self.retryable = retryable
         self.input_tokens = input_tokens
         self.output_tokens = output_tokens

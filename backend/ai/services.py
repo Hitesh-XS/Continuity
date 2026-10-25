@@ -43,7 +43,11 @@ _PROBLEMS = {
     "unavailable": (502, "ai_provider_error", "The AI service could not complete the request."),
     "timeout": (504, "ai_timeout", "The AI service took too long to respond."),
     "bad_request": (502, "ai_provider_error", "The AI service could not complete the request."),
-    "invalid_output": (502, "ai_invalid_output", "The AI service returned an answer that could not be used."),
+    "invalid_output": (
+        502,
+        "ai_invalid_output",
+        "The AI service returned an answer that could not be used.",
+    ),
 }
 
 
@@ -96,10 +100,14 @@ class ExtractionOutput:
         }
 
 
-def _reserve(user: Any, config: AIConfig, provider_name: str, estimate: Decimal, now: datetime) -> AIUsage:
+def _reserve(
+    user: Any, config: AIConfig, provider_name: str, estimate: Decimal, now: datetime
+) -> AIUsage:
     """Checks the cap and records a reservation atomically, so concurrent requests cannot both fit."""
     with transaction.atomic():
-        get_user_model().objects.select_for_update().get(pk=user.pk)  # serialises this user's requests
+        get_user_model().objects.select_for_update().get(
+            pk=user.pk
+        )  # serialises this user's requests
         if month_spend(user, now) + estimate > config.monthly_budget:
             raise ApiProblem(403, "ai_budget_exceeded", "The monthly AI budget would be exceeded.")
         return AIUsage.objects.create(
@@ -189,7 +197,9 @@ def extract_memory(
         for message, text in zip(messages, texts, strict=True)
     ]
     if sum(len(text) for text in texts) > config.max_input_chars:
-        raise ApiProblem(413, "ai_input_too_large", "The selected messages are too long to analyse.")
+        raise ApiProblem(
+            413, "ai_input_too_large", "The selected messages are too long to analyse."
+        )
 
     prompt = build_prompt(prepared)
     provider = (provider_factory or build_provider)(config)
@@ -211,7 +221,9 @@ def extract_memory(
     except ProviderError as exc:
         _finalize(row, config, tally, AIUsage.Status.FAILED, exc.kind)
         if exc.kind in ("auth", "bad_request"):
-            logger.error("ai provider rejected the request kind=%s (check key, model and settings)", exc.kind)
+            logger.error(
+                "ai provider rejected the request kind=%s (check key, model and settings)", exc.kind
+            )
         status, code, detail = _PROBLEMS.get(exc.kind, _PROBLEMS["unavailable"])
         raise ApiProblem(status, code, detail) from None
     except BaseException:
@@ -227,6 +239,9 @@ def extract_memory(
             "cost_usd": format(row.cost_usd, "f"),
         },
         redactions={"total": sum(redaction_counts.values()), "by_kind": redaction_counts},
-        dropped={"unsupported": validated.dropped_unsupported, "invalid": validated.dropped_invalid},
+        dropped={
+            "unsupported": validated.dropped_unsupported,
+            "invalid": validated.dropped_invalid,
+        },
         request_id=str(row.pk),
     )
