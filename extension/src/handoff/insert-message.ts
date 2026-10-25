@@ -16,7 +16,14 @@ export const INSERT_ERROR_CODES = [
 export type InsertErrorCode = (typeof INSERT_ERROR_CODES)[number];
 
 /** Problems the side panel itself detects before or while talking to the page. */
-export const PANEL_ERROR_CODES = ['no_claude_tab', 'unreachable', 'bad_response'] as const;
+export const PANEL_ERROR_CODES = [
+  'no_claude_tab',
+  'unreachable',
+  'bad_response',
+  'no_receiver',
+  'port_closed',
+  'inject_failed',
+] as const;
 export type PanelErrorCode = (typeof PANEL_ERROR_CODES)[number];
 
 /** Side panel -> page script. */
@@ -48,7 +55,13 @@ export const INSERT_ERROR_TEXT: Record<InsertErrorCode | PanelErrorCode, string>
   forbidden: 'The request was not accepted by the page.',
   no_claude_tab: 'Open a new Claude chat (claude.ai/new) in the current tab first.',
   unreachable:
-    'Could not reach the Claude page. Reload the claude.ai tab (it needs the latest extension version) and try again.',
+    'Could not reach the Claude page (unexpected error). Reload the claude.ai tab and try again, or use Copy.',
+  no_receiver:
+    'The Claude page is not running the latest Continuity script, and it could not be started automatically. Reload the claude.ai tab and try again.',
+  port_closed:
+    'The page received the request but did not answer. Check whether the text appeared in the message box (do not insert twice), then use Copy if it did not.',
+  inject_failed:
+    'Could not start the Continuity script on this page. Reload the claude.ai tab, make sure Claude capture is On, and try again.',
   bad_response: 'The page gave an unexpected answer. Use Copy instead.',
 };
 
