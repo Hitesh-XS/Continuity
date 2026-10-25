@@ -32,3 +32,6 @@ Notes:
 - | Chat messages | yes | **never** | never |
 - | Project memory (facts, preferences, decisions, hypotheses, tasks, blockers), their status, topic, edit history (including earlier text of edited items) and references to captured messages | IndexedDB `continuity` → `memoryItems`, `memoryHistory` | **never** (memory is not synced) | never |
 - | Exported memory files (Markdown or JSON) | the Downloads folder, on request | never | never |
+- | Text of messages you SELECT for AI analysis (after redaction) | the extension (selected by you) | passes through Django **in memory only**: never stored, never logged | **sent to Anthropic** when you click Analyze (feature available via the API only until the UI arrives in Phase 9b) |
+| AI consent record (version and time) | n/a | PostgreSQL | never |
+| AI usage ledger: request id, time, model, token counts, cost, error code (no content) | n/a | PostgreSQL | never |
