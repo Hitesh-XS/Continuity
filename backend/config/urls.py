@@ -8,4 +8,5 @@ urlpatterns = [
     # their includes here (projects, checkpoints, sync, ...).
     path("api/v1/", include("accounts.urls")),
     path("api/v1/", include("projects.urls")),
+    path("api/v1/", include("ai.urls")),
 ]
