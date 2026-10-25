@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     "accounts",
     "common",
     "projects",
+    "ai"
+
 ]
 
 MIDDLEWARE = [
@@ -108,9 +110,11 @@ REST_FRAMEWORK = {
         "auth_register": "20/hour",
         "auth_login": "10/min",
         "auth_refresh": "30/min",
+        "ai_extract": "20/hour"
     },
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
+
 }
 
 SIMPLE_JWT = {
@@ -134,3 +138,16 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": env("LOG_LEVEL", default="INFO")},
 }
+
+# ---- AI analysis (all optional; the feature is off unless fully configured) ----------------
+AI_ENABLED = env.bool("AI_ENABLED", default=False)
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
+AI_MODEL = env("AI_MODEL", default="")
+AI_PRICE_INPUT_PER_MTOK_USD = env("AI_PRICE_INPUT_PER_MTOK_USD", default="")
+AI_PRICE_OUTPUT_PER_MTOK_USD = env("AI_PRICE_OUTPUT_PER_MTOK_USD", default="")
+AI_MONTHLY_BUDGET_USD = env("AI_MONTHLY_BUDGET_USD", default="5.00")
+AI_MAX_INPUT_CHARS = env.int("AI_MAX_INPUT_CHARS", default=40_000)
+AI_MAX_OUTPUT_TOKENS = env.int("AI_MAX_OUTPUT_TOKENS", default=2_000)
+AI_REQUEST_TIMEOUT_SECONDS = env.int("AI_REQUEST_TIMEOUT_SECONDS", default=60)
+# Bump to ask every user to consent again (for example when what is sent changes).
+AI_CONSENT_VERSION = 1
