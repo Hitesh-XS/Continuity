@@ -16,7 +16,7 @@ What is stored where. Update this file whenever a phase adds or moves data.
 | Site access to claude.ai | Chrome's permission store (granted by the user on Enable, revoked on Remove) | n/a | n/a |
 
 Notes:
-- Project name, description and goal are user-written text. The server can read them
+- | Project name, description and goal are user-written text. The server can read them
   whenever projects are synced. The UI must say so.
 - `sync_mode` is enforced on the server: a `metadata_only` project refuses checkpoint uploads.
 - Deleting a project deletes its checkpoints. Backups may keep copies until they expire
