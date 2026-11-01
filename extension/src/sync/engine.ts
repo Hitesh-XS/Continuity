@@ -43,9 +43,9 @@ export interface SyncPlan {
   checkpointPushes: LocalCheckpoint[];
   checkpointDeletes: SyncItemRecord[];
   projectDeletes: SyncItemRecord[];
-  /** Failed rows that are not scheduled for another attempt. */
+ 
   failed: number;
-  /** Failed rows whose local item no longer exists. */
+
   staleFailed: SyncItemRecord[];
 }
 
