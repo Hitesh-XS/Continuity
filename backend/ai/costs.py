@@ -3,7 +3,7 @@ from decimal import ROUND_UP, Decimal
 
 _MILLION = Decimal(1_000_000)
 _SIX_PLACES = Decimal("0.000001")
-CHARS_PER_TOKEN_ESTIMATE = 3  # pessimistic on purpose: an estimate only used for the spending cap
+CHARS_PER_TOKEN_ESTIMATE = 3 
 PROMPT_OVERHEAD_TOKENS = 1000  
 
 
