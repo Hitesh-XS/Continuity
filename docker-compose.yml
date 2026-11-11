@@ -1,4 +1,4 @@
-# Local development database only. Credentials come from backend/.env
+# Local development database only
 # (run with: docker compose --env-file backend/.env up -d db)
 services:
   db:
