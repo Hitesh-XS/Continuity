@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Django's command-line entry point. Defaults to development settings."""
-
 import os
 import sys
 
