@@ -18,7 +18,6 @@ Codes in use: `validation_error`, `parse_error`, `not_authenticated`, `token_not
 
 Lifetimes: access 15 min, refresh 7 days, rotated on every refresh.
 
-
 ## AI analysis (optional, off by default)
 
 | Endpoint | Method | Notes |
